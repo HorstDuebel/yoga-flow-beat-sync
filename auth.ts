@@ -42,13 +42,13 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account }: { token: { accessToken?: string }; account: { access_token?: string } | null }) {
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: { user?: { name?: string; email?: string } }; token: { accessToken?: string } }) {
       if (session.user) {
         (session as { accessToken?: string }).accessToken = token.accessToken as string;
       }
