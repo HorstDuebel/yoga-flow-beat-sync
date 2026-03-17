@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Spotify from "next-auth/providers/spotify";
 
 const clientId = process.env.SPOTIFY_CLIENT_ID ?? "";
@@ -42,13 +42,15 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }: { token: any; account: any }) {
+    async jwt(params: Parameters<NonNullable<NextAuthConfig["callbacks"]>["jwt"]>[0]) {
+      const { token, account } = params;
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: any }) {
+    async session(params: Parameters<NonNullable<NextAuthConfig["callbacks"]>["session"]>[0]) {
+      const { session, token } = params;
       if (session.user) {
         (session as { accessToken?: string }).accessToken = token.accessToken as string;
       }
