@@ -42,16 +42,16 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async jwt(params: Parameters<NonNullable<NextAuthConfig["callbacks"]>["jwt"]>[0]) {
+    async jwt(params: { token: Record<string, unknown>; account?: { access_token?: string } | null }) {
       const { token, account } = params;
-      if (account) {
+      if (account?.access_token) {
         token.accessToken = account.access_token;
       }
       return token;
     },
-    async session(params: Parameters<NonNullable<NextAuthConfig["callbacks"]>["session"]>[0]) {
+    async session(params: { session: { user?: unknown }; token: Record<string, unknown> }) {
       const { session, token } = params;
-      if (session.user) {
+      if (session?.user && token.accessToken) {
         (session as { accessToken?: string }).accessToken = token.accessToken as string;
       }
       return session;
@@ -62,4 +62,4 @@ export const authConfig = {
   },
 };
 
-export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig as NextAuthConfig);
