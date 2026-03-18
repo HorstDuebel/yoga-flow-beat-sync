@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Workaround: next-auth + Next.js 16 – Modul-Auflösung für next/server
+  transpilePackages: ["next-auth"],
   env: {
     // Client und Server: 127.0.0.1 (Spotify erlaubt kein localhost)
     NEXTAUTH_URL:
