@@ -18,6 +18,7 @@ export async function fetchTrack(accessToken: string): Promise<
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
     });
 
     if (!res.ok) {

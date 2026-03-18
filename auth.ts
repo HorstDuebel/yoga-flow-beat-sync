@@ -94,7 +94,12 @@ export const authConfig = {
       if (expiresAt && Date.now() < expiresAt - 60_000) {
         return token;
       }
-      return refreshAccessToken(token);
+      try {
+        return await refreshAccessToken(token);
+      } catch (e) {
+        console.error("[Auth] Token-Refresh Exception:", e);
+        return token;
+      }
     },
     async session(params: { session: { user?: unknown }; token: Record<string, unknown> }) {
       const { session, token } = params;

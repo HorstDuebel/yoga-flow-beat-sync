@@ -6,7 +6,7 @@ import Link from "next/link";
 import { fetchTrack, type Track } from "./actions";
 
 export default function MinimalPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [track, setTrack] = useState<Track | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,21 +21,26 @@ export default function MinimalPage() {
     setError(null);
     setIsLoading(true);
     try {
-      // Server Action – läuft serverseitig, umgeht API-Route-404 auf Vercel
       const result = await fetchTrack(token);
       if ("error" in result) {
         setError(result.error ?? "Fehler beim Laden");
         setTrack(null);
-      } else {
+      } else if (result.track) {
         setTrack(result.track);
+      } else {
+        setError("Keine Daten erhalten");
+        setTrack(null);
       }
-    } catch {
-      setError("Netzwerkfehler");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Fehler: ${msg}`);
       setTrack(null);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const hasToken = !!(session as { accessToken?: string } | null)?.accessToken;
 
   const playTrack = () => {
     if (!track?.previewUrl) return;
@@ -83,6 +88,21 @@ export default function MinimalPage() {
             ← Zurück
           </Link>
         </div>
+        {!hasToken && (
+          <div className="mb-4 flex flex-col gap-2 rounded bg-amber-100 px-3 py-2 text-sm text-amber-800">
+            <p>Kein Spotify-Token – Session erneuern oder neu anmelden.</p>
+            <button
+              type="button"
+              onClick={async () => {
+                await update();
+                window.location.reload();
+              }}
+              className="self-start rounded bg-amber-200 px-2 py-1 hover:bg-amber-300"
+            >
+              Session erneuern
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-[auto_1fr_1fr] gap-4 items-start">
           {/* Nr. */}
