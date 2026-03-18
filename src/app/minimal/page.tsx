@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { fetchTrack, type Track } from "./actions";
+import type { Track } from "./actions";
 
 export default function MinimalPage() {
   const { data: session, status, update } = useSession();
@@ -21,12 +21,15 @@ export default function MinimalPage() {
     setError(null);
     setIsLoading(true);
     try {
-      const result = await fetchTrack(token);
-      if ("error" in result) {
-        setError(result.error ?? "Fehler beim Laden");
+      const res = await fetch("/api/minimal/track", {
+        headers: { "X-Spotify-Token": token },
+      });
+      const data = (await res.json()) as { track?: Track; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Fehler beim Laden");
         setTrack(null);
-      } else if (result.track) {
-        setTrack(result.track);
+      } else if (data.track) {
+        setTrack(data.track);
       } else {
         setError("Keine Daten erhalten");
         setTrack(null);

@@ -11,10 +11,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, route: "minimal/track" });
     }
 
-    const authHeader = req.headers.get("authorization");
-    const accessToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    // Token aus X-Spotify-Token (Authorization-Header verursacht 404 auf Vercel)
+    const accessToken =
+      req.headers.get("x-spotify-token") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
 
     if (!accessToken) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
@@ -29,10 +28,19 @@ export async function GET(req: NextRequest) {
 
     if (!spotifyRes.ok) {
       const err = await spotifyRes.text();
-      return NextResponse.json(
-        { error: "Spotify Fehler", details: err },
-        { status: spotifyRes.status }
-      );
+      let msg = "Spotify Fehler";
+      if (spotifyRes.status === 401) msg = "Token abgelaufen – bitte abmelden und erneut anmelden.";
+      else if (spotifyRes.status === 403) msg = "Keine Berechtigung.";
+      else if (spotifyRes.status === 429) msg = "Zu viele Anfragen – bitte warten.";
+      else {
+        try {
+          const parsed = JSON.parse(err) as { error?: { message?: string } };
+          if (parsed.error?.message) msg = parsed.error.message;
+        } catch {
+          if (err.length < 100) msg = err;
+        }
+      }
+      return NextResponse.json({ error: msg }, { status: spotifyRes.status });
     }
 
     const data = (await spotifyRes.json()) as {
