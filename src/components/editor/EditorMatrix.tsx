@@ -113,7 +113,8 @@ export function EditorMatrix() {
       excludeIds: string[] = [],
       limit = 5
     ): Promise<{ tracks: Song[]; error?: string }> => {
-      const res = await fetch("/api/spotify/recommendations", {
+      const base = typeof window !== "undefined" ? window.location.origin : "";
+      const res = await fetch(`${base}/api/spotify/recommendations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

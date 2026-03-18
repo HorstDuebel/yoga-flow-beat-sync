@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "auth";
+
+/** GET zum Testen: Route erreichbar? Öffne /api/spotify/recommendations im Browser. */
+export async function GET() {
+  return NextResponse.json({ ok: true, message: "Recommendations-API aktiv. Nutze POST für Song-Abfrage." });
+}
 import {
   GENRE_TO_SPOTIFY,
   parseBpmRange,
