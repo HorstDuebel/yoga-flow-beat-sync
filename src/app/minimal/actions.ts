@@ -22,7 +22,22 @@ export async function fetchTrack(accessToken: string): Promise<
 
     if (!res.ok) {
       const err = await res.text();
-      return { error: "Spotify Fehler", details: err };
+      let msg = "Spotify Fehler";
+      if (res.status === 401) {
+        msg = "Token abgelaufen – bitte abmelden und erneut anmelden.";
+      } else if (res.status === 403) {
+        msg = "Keine Berechtigung – Spotify-Bereiche prüfen.";
+      } else if (res.status === 429) {
+        msg = "Zu viele Anfragen – bitte kurz warten.";
+      } else {
+        try {
+          const parsed = JSON.parse(err) as { error?: { message?: string } };
+          if (parsed.error?.message) msg = parsed.error.message;
+        } catch {
+          if (err.length < 100) msg = err;
+        }
+      }
+      return { error: msg, details: err };
     }
 
     const data = (await res.json()) as {

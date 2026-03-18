@@ -4,6 +4,41 @@ import Spotify from "next-auth/providers/spotify";
 const clientId = process.env.SPOTIFY_CLIENT_ID ?? "";
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET ?? "";
 
+async function refreshAccessToken(
+  token: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const refreshToken = token.refreshToken as string | undefined;
+  if (!refreshToken) return token;
+
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basicAuth}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("[Auth] Token-Refresh fehlgeschlagen:", await res.text());
+    return token;
+  }
+
+  const data = (await res.json()) as {
+    access_token?: string;
+    expires_in?: number;
+  };
+  return {
+    ...token,
+    accessToken: data.access_token ?? token.accessToken,
+    accessTokenExpires: Date.now() + (data.expires_in ?? 3600) * 1000,
+  };
+}
+
 if (!clientId || !clientSecret || clientId.includes("@")) {
   console.error(
     "[Auth] SPOTIFY_CLIENT_ID muss der 32-Zeichen-Hex aus developer.spotify.com/dashboard sein (nicht E-Mail!). " +
@@ -42,12 +77,24 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async jwt(params: { token: Record<string, unknown>; account?: { access_token?: string } | null }) {
+    async jwt(params: {
+      token: Record<string, unknown>;
+      account?: { access_token?: string; refresh_token?: string; expires_at?: number } | null;
+    }) {
       const { token, account } = params;
-      if (account?.access_token) {
+      if (account) {
         token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.accessTokenExpires = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + 3600 * 1000;
+        return token;
       }
-      return token;
+      const expiresAt = token.accessTokenExpires as number | undefined;
+      if (expiresAt && Date.now() < expiresAt - 60_000) {
+        return token;
+      }
+      return refreshAccessToken(token);
     },
     async session(params: { session: { user?: unknown }; token: Record<string, unknown> }) {
       const { session, token } = params;
