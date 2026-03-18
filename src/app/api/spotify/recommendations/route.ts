@@ -24,11 +24,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const genre = searchParams.get("genre") ?? undefined;
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10) || 20));
-    const excludeParam = searchParams.get("excludeTrackIds");
-    const excludeTrackIds = excludeParam ? excludeParam.split(",").filter(Boolean) : [];
+    // Parameter aus Headern (Query-Params verursachen 404 auf Vercel)
+    const genre = req.headers.get("x-spotify-genre") ?? undefined;
+    const limit = Math.min(100, Math.max(1, parseInt(req.headers.get("x-spotify-limit") ?? "20", 10) || 20));
+    const excludeHeader = req.headers.get("x-spotify-exclude-ids");
+    const excludeTrackIds = excludeHeader ? excludeHeader.split(",").filter(Boolean) : [];
 
     const seedGenre = genre && GENRE_MAP[genre] ? GENRE_MAP[genre] : "ambient";
 

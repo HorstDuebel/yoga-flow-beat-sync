@@ -117,14 +117,14 @@ export function EditorMatrix() {
     ): Promise<{ tracks: Song[]; error?: string }> => {
       const accessToken = (session as { accessToken?: string } | null)?.accessToken;
       const base = typeof window !== "undefined" ? window.location.origin : "";
-      const params = new URLSearchParams();
-      if (slot.genre) params.set("genre", slot.genre);
-      params.set("limit", String(limit));
-      if (excludeIds.length) params.set("excludeTrackIds", excludeIds.join(","));
-      const url = `${base}/api/spotify/recommendations?${params.toString()}`;
-      const res = await fetch(url, {
+      const headers: Record<string, string> = {};
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      headers["X-Spotify-Limit"] = String(limit);
+      if (slot.genre) headers["X-Spotify-Genre"] = slot.genre;
+      if (excludeIds.length) headers["X-Spotify-Exclude-Ids"] = excludeIds.join(",");
+      const res = await fetch(`${base}/api/spotify/recommendations`, {
         method: "GET",
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        headers,
       });
       let data: { tracks?: Song[]; error?: string; details?: string };
       try {
