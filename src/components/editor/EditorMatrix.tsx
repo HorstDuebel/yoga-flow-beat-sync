@@ -126,7 +126,12 @@ export function EditorMatrix() {
           excludeTrackIds: excludeIds,
         }),
       });
-      const data = (await res.json()) as { tracks?: Song[]; error?: string; details?: string };
+      let data: { tracks?: Song[]; error?: string; details?: string };
+      try {
+        data = (await res.json()) as { tracks?: Song[]; error?: string; details?: string };
+      } catch {
+        return { tracks: [], error: res.status === 500 ? "Serverfehler. Bitte später erneut versuchen." : "Unerwartete Antwort." };
+      }
       if (!res.ok) {
         const msg =
           res.status === 401

@@ -18,18 +18,24 @@ type RecommendationsParams = {
   excludeTrackIds?: string[];
 };
 
+function sendJson(res: NextApiResponse, status: number, data: object) {
+  res.setHeader("Content-Type", "application/json");
+  res.status(status).json(data);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return sendJson(res, 405, { error: "Method not allowed" });
   }
 
   try {
     const session = await auth(req, res);
-    if (!session?.accessToken) {
-      return res.status(401).json({ error: "Nicht angemeldet" });
+    const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+    if (!session || !accessToken) {
+      return sendJson(res, 401, { error: "Nicht angemeldet" });
     }
 
     const body = req.body as RecommendationsParams;
@@ -74,13 +80,13 @@ export default async function handler(
 
     const spotifyRes = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
     if (!spotifyRes.ok) {
       const err = await spotifyRes.text();
-      return res.status(spotifyRes.status).json({
+      return sendJson(res, spotifyRes.status, {
         error: "Spotify API Fehler",
         details: err,
       });
@@ -108,11 +114,11 @@ export default async function handler(
         imageUrl: t.album?.images?.[0]?.url,
       }));
 
-    return res.status(200).json({ tracks });
+    return sendJson(res, 200, { tracks });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[recommendations] Fehler:", err);
-    return res.status(500).json({
+    return sendJson(res, 500, {
       error: "Serverfehler",
       details: msg,
     });
