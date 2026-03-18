@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Vercel: Serverless-Funktion explizit als Node.js markieren (behebt 404 bei manchen Deployments)
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -14,11 +13,6 @@ const GENRE_MAP: Record<string, string> = {
   Nature: "ambient",
 };
 
-/**
- * GET: Empfängt Recommendations (Workaround: POST liefert 404 auf Vercel).
- * - accessToken: im Header "Authorization: Bearer <token>"
- * - genre, limit, excludeTrackIds: als Query-Parameter
- */
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
@@ -84,7 +78,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ tracks });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[recommendations] Fehler:", err);
+    console.error("[spotify/recommendations] Fehler:", err);
     return NextResponse.json(
       { error: "Serverfehler", details: msg },
       { status: 500 }

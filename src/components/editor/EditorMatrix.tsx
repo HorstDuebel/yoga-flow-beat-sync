@@ -121,7 +121,7 @@ export function EditorMatrix() {
       if (slot.genre) params.set("genre", slot.genre);
       params.set("limit", String(limit));
       if (excludeIds.length) params.set("excludeTrackIds", excludeIds.join(","));
-      const url = `${base}/api/recommendations?${params.toString()}`;
+      const url = `${base}/api/spotify/recommendations?${params.toString()}`;
       const res = await fetch(url, {
         method: "GET",
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
