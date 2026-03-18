@@ -117,15 +117,14 @@ export function EditorMatrix() {
     ): Promise<{ tracks: Song[]; error?: string }> => {
       const accessToken = (session as { accessToken?: string } | null)?.accessToken;
       const base = typeof window !== "undefined" ? window.location.origin : "";
-      const res = await fetch(`${base}/api/recommendations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accessToken,
-          genre: slot.genre || undefined,
-          limit,
-          excludeTrackIds: excludeIds,
-        }),
+      const params = new URLSearchParams();
+      if (slot.genre) params.set("genre", slot.genre);
+      params.set("limit", String(limit));
+      if (excludeIds.length) params.set("excludeTrackIds", excludeIds.join(","));
+      const url = `${base}/api/recommendations?${params.toString()}`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
       let data: { tracks?: Song[]; error?: string; details?: string };
       try {

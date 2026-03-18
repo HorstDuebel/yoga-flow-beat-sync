@@ -14,38 +14,33 @@ const GENRE_MAP: Record<string, string> = {
   Nature: "ambient",
 };
 
-type RecommendationsBody = {
-  accessToken?: string;
-  genre?: string;
-  limit?: number;
-  excludeTrackIds?: string[];
-};
-
-/** GET: Debug – prüft ob Route auf Vercel erreichbar ist */
-export async function GET() {
-  return NextResponse.json({ ok: true, route: "recommendations" });
-}
-
-export async function POST(req: NextRequest) {
-  let body: RecommendationsBody;
+/**
+ * GET: Empfängt Recommendations (Workaround: POST liefert 404 auf Vercel).
+ * - accessToken: im Header "Authorization: Bearer <token>"
+ * - genre, limit, excludeTrackIds: als Query-Parameter
+ */
+export async function GET(req: NextRequest) {
   try {
-    const raw = await req.text();
-    body = raw ? (JSON.parse(raw) as RecommendationsBody) : {};
-  } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body" }, { status: 400 });
-  }
-  try {
-    const { accessToken, genre, limit = 20, excludeTrackIds = [] } = body;
+    const authHeader = req.headers.get("authorization");
+    const accessToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
     if (!accessToken) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const genre = searchParams.get("genre") ?? undefined;
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10) || 20));
+    const excludeParam = searchParams.get("excludeTrackIds");
+    const excludeTrackIds = excludeParam ? excludeParam.split(",").filter(Boolean) : [];
+
     const seedGenre = genre && GENRE_MAP[genre] ? GENRE_MAP[genre] : "ambient";
 
     const params = new URLSearchParams();
     params.set("seed_genres", seedGenre);
-    params.set("limit", String(Math.min(100, Math.max(1, limit))));
+    params.set("limit", String(limit));
     params.set("market", "DE");
 
     const url = `https://api.spotify.com/v1/recommendations?${params.toString()}`;
