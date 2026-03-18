@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "auth";
 import { GENRE_TO_SPOTIFY } from "@/lib/spotify";
 import type { Song } from "@/types/editor";
 
@@ -7,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type RecommendationsParams = {
+  accessToken?: string;
   genre?: string;
   limit?: number;
   excludeTrackIds?: string[];
@@ -14,17 +14,20 @@ type RecommendationsParams = {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-    if (!session || !accessToken) {
-      return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
-    }
+    let accessToken: string | undefined;
 
+    // 1. Versuch: accessToken aus Request-Body (vom Client)
     let body: RecommendationsParams;
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Ungültiger Body" }, { status: 400 });
+    }
+
+    accessToken = body.accessToken;
+
+    if (!accessToken) {
+      return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
     const { genre, limit = 20, excludeTrackIds = [] } = body;

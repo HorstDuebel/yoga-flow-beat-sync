@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +32,7 @@ const createInitialSlots = (): ExerciseSlot[] =>
 
 export function EditorMatrix() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [flowName, setFlowName] = useState("");
   const [slots, setSlots] = useState<ExerciseSlot[]>(createInitialSlots);
   const [nextRowId, setNextRowId] = useState(20);
@@ -113,15 +115,14 @@ export function EditorMatrix() {
       excludeIds: string[] = [],
       limit = 5
     ): Promise<{ tracks: Song[]; error?: string }> => {
+      const accessToken = (session as { accessToken?: string } | null)?.accessToken;
       const base = typeof window !== "undefined" ? window.location.origin : "";
       const res = await fetch(`${base}/api/spotify/recommendations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          timeMMSS: slot.timeMMSS || undefined,
+          accessToken,
           genre: slot.genre || undefined,
-          bpm: slot.bpm || undefined,
-          lyrics: slot.lyrics || undefined,
           limit,
           excludeTrackIds: excludeIds,
         }),
@@ -141,7 +142,7 @@ export function EditorMatrix() {
       }
       return { tracks: data.tracks ?? [] };
     },
-    []
+    [session]
   );
 
   const runSearchForSlot = useCallback(
