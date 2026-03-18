@@ -1,9 +1,6 @@
-import { NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { GENRE_TO_SPOTIFY } from "@/lib/spotify";
 import type { Song } from "@/types/editor";
-
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
 type RecommendationsParams = {
   accessToken?: string;
@@ -12,25 +9,21 @@ type RecommendationsParams = {
   excludeTrackIds?: string[];
 };
 
-export async function POST(request: Request) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    let accessToken: string | undefined;
-
-    // 1. Versuch: accessToken aus Request-Body (vom Client)
-    let body: RecommendationsParams;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: "Ungültiger Body" }, { status: 400 });
-    }
-
-    accessToken = body.accessToken;
+    const body = (req.body ?? {}) as RecommendationsParams;
+    const { accessToken, genre, limit = 20, excludeTrackIds = [] } = body;
 
     if (!accessToken) {
-      return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
+      return res.status(401).json({ error: "Nicht angemeldet" });
     }
-
-    const { genre, limit = 20, excludeTrackIds = [] } = body;
 
     const seedGenre =
       genre && GENRE_TO_SPOTIFY[genre] ? GENRE_TO_SPOTIFY[genre] : "ambient";
@@ -50,10 +43,10 @@ export async function POST(request: Request) {
 
     if (!spotifyRes.ok) {
       const err = await spotifyRes.text();
-      return NextResponse.json(
-        { error: "Spotify API Fehler", details: err },
-        { status: spotifyRes.status }
-      );
+      return res.status(spotifyRes.status).json({
+        error: "Spotify API Fehler",
+        details: err,
+      });
     }
 
     const data = (await spotifyRes.json()) as {
@@ -78,13 +71,13 @@ export async function POST(request: Request) {
         imageUrl: t.album?.images?.[0]?.url,
       }));
 
-    return NextResponse.json({ tracks });
+    return res.status(200).json({ tracks });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[recommendations] Fehler:", err);
-    return NextResponse.json(
-      { error: "Serverfehler", details: msg },
-      { status: 500 }
-    );
+    return res.status(500).json({
+      error: "Serverfehler",
+      details: msg,
+    });
   }
 }
