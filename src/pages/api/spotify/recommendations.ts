@@ -1,7 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { auth } from "auth";
+import { getToken } from "next-auth/jwt";
 import { GENRE_TO_SPOTIFY } from "@/lib/spotify";
 import type { Song } from "@/types/editor";
+
+/** NextApiRequest-Header für getToken lesbar machen */
+function toHeadersRecord(
+  headers: NextApiRequest["headers"]
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!headers) return out;
+  for (const [k, v] of Object.entries(headers)) {
+    if (v != null) out[k] = Array.isArray(v) ? v[0] ?? "" : String(v);
+  }
+  return out;
+}
 
 type RecommendationsParams = {
   timeMMSS?: string;
@@ -26,9 +38,13 @@ export default async function handler(
   }
 
   try {
-    const session = await auth(req, res);
-    const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-    if (!session || !accessToken) {
+    const token = await getToken({
+      req: { headers: toHeadersRecord(req.headers) },
+      secret: process.env.AUTH_SECRET,
+      secureCookie: true,
+    });
+    const accessToken = (token as { accessToken?: string } | null)?.accessToken;
+    if (!token || !accessToken) {
       return sendJson(res, 401, { error: "Nicht angemeldet" });
     }
 
