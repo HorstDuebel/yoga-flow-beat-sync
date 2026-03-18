@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Vercel: Serverless-Funktion explizit als Node.js markieren (behebt 404 bei manchen Deployments)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const GENRE_MAP: Record<string, string> = {
   Ambient: "ambient",
   Meditation: "meditation",
@@ -17,9 +21,20 @@ type RecommendationsBody = {
   excludeTrackIds?: string[];
 };
 
+/** GET: Debug – prüft ob Route auf Vercel erreichbar ist */
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "recommendations" });
+}
+
 export async function POST(req: NextRequest) {
+  let body: RecommendationsBody;
   try {
-    const body = (await req.json()) as RecommendationsBody;
+    const raw = await req.text();
+    body = raw ? (JSON.parse(raw) as RecommendationsBody) : {};
+  } catch {
+    return NextResponse.json({ error: "Ungültiger JSON-Body" }, { status: 400 });
+  }
+  try {
     const { accessToken, genre, limit = 20, excludeTrackIds = [] } = body;
 
     if (!accessToken) {
