@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "auth";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 /** GET zum Testen: Route erreichbar? Öffne /api/spotify/recommendations im Browser. */
 export async function GET() {
   return NextResponse.json({ ok: true, message: "Recommendations-API aktiv. Nutze POST für Song-Abfrage." });
+}
+
+/** CORS-Preflight – manche Browser senden OPTIONS vor POST. */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
 }
 import {
   GENRE_TO_SPOTIFY,
