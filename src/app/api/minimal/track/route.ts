@@ -6,6 +6,11 @@ export const dynamic = "force-dynamic";
 /** Minimal: Ein Track von Spotify Recommendations. Token im Header. */
 export async function GET(req: NextRequest) {
   try {
+    // Debug: Ohne Spotify-Fetch prüfen ob Route überhaupt erreicht wird
+    if (req.headers.get("x-test-mode") === "1") {
+      return NextResponse.json({ ok: true, route: "minimal/track" });
+    }
+
     const authHeader = req.headers.get("authorization");
     const accessToken = authHeader?.startsWith("Bearer ")
       ? authHeader.slice(7)

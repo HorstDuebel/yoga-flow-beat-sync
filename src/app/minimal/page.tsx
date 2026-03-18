@@ -3,14 +3,7 @@
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-
-type Track = {
-  id: string;
-  title?: string;
-  artist?: string;
-  previewUrl?: string;
-  imageUrl?: string;
-};
+import { fetchTrack, type Track } from "./actions";
 
 export default function MinimalPage() {
   const { data: session, status } = useSession();
@@ -28,17 +21,14 @@ export default function MinimalPage() {
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch("/api/minimal/track", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = (await res.json()) as { track?: Track; error?: string };
-      if (!res.ok) {
-        setError(data.error ?? "Fehler beim Laden");
+      // Server Action – läuft serverseitig, umgeht API-Route-404 auf Vercel
+      const result = await fetchTrack(token);
+      if ("error" in result) {
+        setError(result.error ?? "Fehler beim Laden");
         setTrack(null);
-        return;
+      } else {
+        setTrack(result.track);
       }
-      setTrack(data.track ?? null);
     } catch {
       setError("Netzwerkfehler");
       setTrack(null);
@@ -136,22 +126,37 @@ export default function MinimalPage() {
               <p className="mt-2 text-xs text-red-600">{error}</p>
             )}
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={playTrack}
+                  disabled={!track?.previewUrl}
+                  className="flex-1 rounded bg-primary px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Play
+                </button>
+                <button
+                  type="button"
+                  onClick={loadTrack}
+                  disabled={isLoading}
+                  className="rounded border border-primary/50 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoading ? "…" : "Load New"}
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={playTrack}
-                disabled={!track?.previewUrl}
-                className="flex-1 rounded bg-primary px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={async () => {
+                  const res = await fetch("/api/minimal/track", {
+                    headers: { "X-Test-Mode": "1" },
+                  });
+                  const data = await res.json();
+                  alert(res.ok ? `API OK: ${JSON.stringify(data)}` : `API ${res.status}: ${JSON.stringify(data)}`);
+                }}
+                className="text-xs text-text/50 hover:text-text/80"
               >
-                Play
-              </button>
-              <button
-                type="button"
-                onClick={loadTrack}
-                disabled={isLoading}
-                className="rounded border border-primary/50 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoading ? "…" : "Load New"}
+                API-Route testen (X-Test-Mode)
               </button>
             </div>
           </div>
