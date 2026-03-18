@@ -22,7 +22,13 @@ export default async function HomePage() {
             <p className="text-sm text-text/70">
               Angemeldet als {session.user?.name ?? session.user?.email}
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                href="/minimal"
+                className="rounded-lg border border-primary/50 px-6 py-3 font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                Minimal Proof
+              </Link>
               <Link
                 href="/editor"
                 className="rounded-lg bg-primary px-6 py-3 font-medium text-background transition-colors hover:bg-primary/90"
