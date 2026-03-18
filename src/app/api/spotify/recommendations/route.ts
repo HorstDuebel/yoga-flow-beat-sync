@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
   const excludeSet = new Set(excludeTrackIds);
   const tracks: Song[] = (data.tracks ?? [])
-    .filter((t) => !excludeSet.has(t.id) && t.preview_url)
+    .filter((t) => !excludeSet.has(t.id))
     .slice(0, limit)
     .map((t) => ({
       id: t.id,

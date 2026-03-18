@@ -37,6 +37,8 @@ export function EditorMatrix() {
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
 
   const handleAddExercise = useCallback(() => {
     const newSlot: ExerciseSlot = {
@@ -106,10 +108,11 @@ export function EditorMatrix() {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchRecommendations = useCallback(
-    async (slot: ExerciseSlot, excludeIds: string[] = [], limit = 5) => {
-      const hasSeed = slot.timeMMSS?.trim() || slot.genre || slot.bpm || slot.lyrics;
-      if (!hasSeed && excludeIds.length === 0) return [];
-
+    async (
+      slot: ExerciseSlot,
+      excludeIds: string[] = [],
+      limit = 5
+    ): Promise<{ tracks: Song[]; error?: string }> => {
       const res = await fetch("/api/spotify/recommendations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,16 +125,22 @@ export function EditorMatrix() {
           excludeTrackIds: excludeIds,
         }),
       });
-      if (!res.ok) return [];
-      const { tracks } = (await res.json()) as { tracks: Song[] };
-      return tracks;
+      const data = (await res.json()) as { tracks?: Song[]; error?: string; details?: string };
+      if (!res.ok) {
+        const msg =
+          res.status === 401
+            ? "Bitte mit Spotify anmelden."
+            : data.error ?? data.details ?? "Spotify-Fehler";
+        return { tracks: [], error: msg };
+      }
+      return { tracks: data.tracks ?? [] };
     },
     []
   );
 
   const runSearchForSlot = useCallback(
     (slot: ExerciseSlot) => {
-      fetchRecommendations(slot).then((tracks) => {
+      fetchRecommendations(slot).then(({ tracks }) => {
         if (tracks.length === 0) return;
         setSlots((prev) =>
           prev.map((s) => {
@@ -199,12 +208,23 @@ export function EditorMatrix() {
     async (rowId: string, slotIndex: number) => {
       const slot = slots.find((s) => s.id === rowId);
       if (!slot) return;
+      setLoadError(null);
+      setLoadingSlot(`${rowId}-${slotIndex}`);
       const excludeIds = slot.songs
         .filter((s): s is Song => s != null)
         .map((s) => s.id);
-      const tracks = await fetchRecommendations(slot, excludeIds, 10);
+      const { tracks, error } = await fetchRecommendations(slot, excludeIds, 10);
+      setLoadingSlot(null);
+      if (error) {
+        setLoadError(error);
+        return;
+      }
       const newTrack = tracks.find((t) => !excludeIds.includes(t.id)) ?? tracks[0];
-      if (!newTrack) return;
+      if (!newTrack) {
+        setLoadError("Keine passenden Songs gefunden. Filter anpassen oder später erneut versuchen.");
+        return;
+      }
+      setLoadError(null);
       setSlots((prev) =>
         prev.map((s) => {
           if (s.id !== rowId) return s;
@@ -288,6 +308,7 @@ export function EditorMatrix() {
               onFilterChange={handleFilterChange}
               onPlayPreview={handlePlayPreview}
               onLoadNewSong={handleLoadNewSong}
+              loadingSlot={loadingSlot}
             />
           ))}
         </SortableContext>
@@ -324,8 +345,8 @@ export function EditorMatrix() {
             {isSaving ? "Speichern…" : "Speichern"}
           </button>
         </div>
-        {saveError && (
-          <p className="mt-2 text-sm text-red-600">{saveError}</p>
+        {(saveError || loadError) && (
+          <p className="mt-2 text-sm text-red-600">{saveError ?? loadError}</p>
         )}
       </div>
     </DndContext>

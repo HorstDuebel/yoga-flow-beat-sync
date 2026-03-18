@@ -25,6 +25,7 @@ type Props = {
   ) => void;
   onPlayPreview: (url: string) => void;
   onLoadNewSong: (rowId: string, slotIndex: number) => void;
+  loadingSlot: string | null;
 };
 
 export function ExerciseRow({
@@ -33,6 +34,7 @@ export function ExerciseRow({
   onFilterChange,
   onPlayPreview,
   onLoadNewSong,
+  loadingSlot,
 }: Props) {
   const {
     attributes,
@@ -144,6 +146,7 @@ export function ExerciseRow({
               song={song}
               onPlay={onPlayPreview}
               onLoadNew={() => onLoadNewSong(slot.id, i)}
+              isLoading={loadingSlot === `${slot.id}-${i}`}
             />
           ))}
         </div>

@@ -9,9 +9,10 @@ type Props = {
   song: Song | null;
   onPlay: (previewUrl: string) => void;
   onLoadNew: () => void;
+  isLoading?: boolean;
 };
 
-export function SongCard({ id, song, onPlay, onLoadNew }: Props) {
+export function SongCard({ id, song, onPlay, onLoadNew, isLoading }: Props) {
   const {
     attributes,
     listeners,
@@ -77,10 +78,11 @@ export function SongCard({ id, song, onPlay, onLoadNew }: Props) {
         <button
           type="button"
           onClick={onLoadNew}
-          className="rounded border border-primary/50 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+          disabled={isLoading}
+          className="rounded border border-primary/50 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
           title="Neuen Song laden"
         >
-          Load New
+          {isLoading ? "…" : "Load New"}
         </button>
       </div>
     </div>
