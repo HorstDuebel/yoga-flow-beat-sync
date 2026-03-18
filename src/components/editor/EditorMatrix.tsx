@@ -117,7 +117,7 @@ export function EditorMatrix() {
     ): Promise<{ tracks: Song[]; error?: string }> => {
       const accessToken = (session as { accessToken?: string } | null)?.accessToken;
       const base = typeof window !== "undefined" ? window.location.origin : "";
-      const res = await fetch(`${base}/api/spotify/recommendations`, {
+      const res = await fetch(`${base}/api/recommendations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
