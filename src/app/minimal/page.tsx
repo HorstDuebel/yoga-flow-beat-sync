@@ -3,7 +3,14 @@
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import type { Track } from "./actions";
+
+type Track = {
+  id: string;
+  title?: string;
+  artist?: string;
+  previewUrl?: string;
+  imageUrl?: string;
+};
 
 export default function MinimalPage() {
   const { data: session, status, update } = useSession();
